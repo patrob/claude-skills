@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "claude-skills",
-      "source": ".",
+      "source": "./plugins/claude-skills",
       "description": "Parallel development workflow skills: research, deliberation, implementation, code review, and multi-workstream orchestration with worktree isolation"
     }
   ]
