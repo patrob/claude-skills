@@ -1,0 +1,16 @@
+{
+  "name": "claude-skills",
+  "owner": {
+    "name": "Patrick Robinson"
+  },
+  "metadata": {
+    "description": "Parallel development workflow skills for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "claude-skills",
+      "source": ".",
+      "description": "Parallel development workflow skills: research, deliberation, implementation, code review, and multi-workstream orchestration with worktree isolation"
+    }
+  ]
+}

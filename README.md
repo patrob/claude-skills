@@ -4,10 +4,11 @@ A collection of Claude Code skills for parallel development workflows and code r
 
 ## Installation
 
-Install as a Claude Code plugin directly from GitHub:
+Add the marketplace and install the plugin:
 
 ```bash
-claude plugin install patrob/claude-skills@github
+claude plugin marketplace add patrob/claude-skills
+claude plugin install claude-skills@claude-skills
 ```
 
 Once installed, all skills are available with the `claude-skills:` prefix:
@@ -19,28 +20,15 @@ Once installed, all skills are available with the `claude-skills:` prefix:
 /claude-skills:pw-review      # 5-lens code review
 ```
 
-### Manual Installation
-
-If you prefer to install manually, copy the skills and commands into your Claude Code configuration:
-
-```bash
-# Clone the repo
-git clone https://github.com/patrob/claude-skills.git
-
-# Copy all skills
-cp -r claude-skills/skills/* ~/.claude/skills/
-
-# Copy the workflow command
-cp claude-skills/commands/workflow.md ~/.claude/commands/
-```
-
 ### Local Development
 
 To test changes locally before committing:
 
 ```bash
-claude plugin install --local /path/to/claude-skills
+claude --plugin-dir ./path/to/claude-skills
 ```
+
+Then run `/reload-plugins` inside Claude Code to pick up changes without restarting.
 
 ## What's Included
 
