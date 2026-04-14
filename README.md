@@ -39,7 +39,7 @@ cp claude-skills/commands/workflow.md ~/.claude/commands/
 To test changes locally before committing:
 
 ```bash
-claude --plugin-dir ./claude-skills
+claude plugin install --local /path/to/claude-skills
 ```
 
 ## What's Included
