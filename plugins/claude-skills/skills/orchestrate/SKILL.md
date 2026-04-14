@@ -83,6 +83,22 @@ Categorize relationships:
 - **Consumer/Producer**: one needs the other's output → sequential
 - **Shared foundation**: both need a common base → extract foundation as its own workstream, run first
 
+#### Contract Extraction for Consumer/Producer Pairs
+
+When a Consumer/Producer relationship is identified (e.g., one workstream produces
+output that another consumes — service-to-service calls, job queues, shared data
+shapes, or backend-to-frontend data flow):
+
+1. Define the shared interface contract inline in the orchestration plan:
+   - Data shape (in the project's native type system or as a schema)
+   - Required fields vs optional
+   - Error/status enumerations
+2. Include the contract in BOTH agents' prompts (see Phase 2b agent prompt)
+3. The producer workstream MUST implement the contract as defined
+4. The consumer workstream MUST consume the contract as defined
+
+See `{SKILL_DIR}/references/interface-contracts.md` for contract format and examples.
+
 #### 1c. Build Round Schedule
 
 Group workstreams into rounds:
@@ -188,6 +204,21 @@ This workstream is part of a larger build: {1-2 sentence summary of the overall
 project}. Other workstreams running in parallel: {list names only — don't worry
 about their implementation, just know they exist}.
 
+## Interface Contracts (if applicable)
+{For each contract this workstream participates in, include:}
+
+You are the {PRODUCER|CONSUMER} for the following contract:
+
+  Contract: {contract name}
+  Producer: {workstream name}
+  Consumer: {workstream name}
+  Shape:
+    {type definition, schema, or structured description in the project's language}
+
+If you are the PRODUCER: your implementation MUST match this shape exactly.
+If you are the CONSUMER: your implementation MUST consume this shape exactly.
+Do NOT deviate from the contract without noting it in your workstream report.
+
 ## Your Pipeline
 
 Execute these phases in order. Each phase builds on the previous.
@@ -247,6 +278,15 @@ Skip planning if: the workstream is a single focused task (< 3 files).
 - Follow existing project conventions
 - Write clean, production-quality code — not stubs or TODOs
 - Create/update tests alongside implementation
+
+**REGRESSION GUARD**: When modifying a file that already has working functionality
+(either from a prior round or pre-existing in the codebase):
+- Read the file BEFORE making changes and catalog all existing public interfaces:
+  exported functions, route handlers, class methods, query behavior, response shapes
+- After your changes, verify EVERY pre-existing interface still exists and functions
+  correctly — not downgraded to a stub, placeholder, or no-op
+- If your change rewrites a substantial portion of a file, diff your version against
+  the original and confirm no unintended deletions or regressions
 
 **MANDATORY: Commit after every logical unit of work.** A logical unit is:
   - A new file or module
@@ -417,10 +457,27 @@ git merge {worktree-branch} --no-ff -m "merge: {workstream name}"
 
 #### 4c. Post-Merge Verification
 
-After EACH merge, run a quick verification to catch integration issues early:
+After EACH merge, run verification to catch integration issues early:
+
 ```bash
 # Adapt to project — run whatever verification the project supports
+# Type check, tests, lint
 ```
+
+**Cross-boundary contract verification**: If the merged branch modified files that
+produce data consumed by other code (endpoints, job producers, event emitters,
+shared modules), verify consumers still match:
+1. Identify modified producer files (files that define interfaces others depend on)
+2. For each, find consuming code (callers, subscribers, UI pages, workers)
+3. Check that the consumer's expected input shape matches the producer's actual output
+4. Treat a mismatch as a verification failure (same severity as a test failure)
+
+This catches regressions where a producer changes its output shape without updating
+downstream consumers.
+
+If a known consumer exists in a workstream that has not yet merged (e.g., a parallel
+workstream in the same round), note the pending contract check and verify it
+explicitly when that workstream merges.
 
 If verification fails: launch a fix agent, or revert and report.
 
@@ -432,6 +489,15 @@ See `{SKILL_DIR}/references/merge-protocol.md` for protocol.
 ### Phase 5: Integration Round
 
 After all workstream branches are merged, run a final integration pass:
+
+#### 5-setup. Capture Integration Baseline
+
+Before running integration tests or fixes, capture the current HEAD as the baseline:
+```bash
+INTEGRATION_BASE=$(git rev-parse HEAD)
+```
+This is used in 5b-review to diff any integration fix commits against the
+pre-integration state.
 
 #### 5a. Integration Tests
 
@@ -449,6 +515,39 @@ cargo test           # if Cargo.toml
 ```
 
 If failures: invoke `verify-fix-loop` skill to iteratively fix.
+
+#### 5b-review. Review Integration Fixes
+
+If Phase 5b produced any fix commits on the feature branch, they MUST be reviewed
+before proceeding. Integration fixes are high-risk — they modify already-reviewed
+code under time pressure, which is when regressions are most likely.
+
+1. Using the `$INTEGRATION_BASE` captured in 5-setup, diff against that baseline:
+   ```bash
+   git diff $INTEGRATION_BASE..HEAD
+   ```
+3. Launch a review agent on the integration diff:
+   ```
+   Agent({
+     description: "Review: integration fixes",
+     prompt: "Review the integration fixes on the feature branch.
+       These commits fix failures found during the integration round.
+       They modify code that was already reviewed and merged from
+       individual workstreams.
+
+       Focus on:
+       1. REGRESSIONS: Do fixes preserve all existing behavior? Check
+          that working functions, handlers, query behavior, and output
+          shapes are not lost or downgraded.
+       2. Completeness: If a file was rewritten to add new behavior,
+          verify ALL prior functionality is retained.
+       3. Stub detection: Flag any stub, placeholder, or not-implemented
+          response replacing previously working code.
+
+       Output APPROVE or REQUEST_CHANGES."
+   })
+   ```
+4. If REQUEST_CHANGES: fix and re-review (max 2 iterations)
 
 #### 5c. Final Review (optional)
 

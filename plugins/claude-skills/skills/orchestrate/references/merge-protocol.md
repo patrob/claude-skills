@@ -125,6 +125,11 @@ After each successful merge, run a quick verification:
 # Check for lint config → run lint
 ```
 
+**Cross-boundary verification** (if the merged branch modified producer code):
+1. For each modified file that produces output consumed elsewhere, find its consumers
+2. Verify the consumer expects the same shape the producer now outputs
+3. Treat a mismatch as a verification failure
+
 **If verification passes**: log success, continue to next branch.
 
 **If verification fails**:

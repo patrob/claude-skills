@@ -140,6 +140,12 @@ Agent({
      - Type check (if applicable)
      - Tests
      - Lint
+  3b. REGRESSION CHECK: Before committing, for each file you modified:
+     - Diff your changes against the version before your edits
+     - Verify you did NOT remove existing working code (functions, handlers,
+       query behavior, output shapes, exports)
+     - If you rewrote a file to fix one thing, confirm every other piece of
+       functionality in that file is preserved
   4. Commit your fixes with message: 'fix: address review feedback (iteration {N})'
 
   ## Report
