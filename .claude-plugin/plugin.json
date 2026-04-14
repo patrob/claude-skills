@@ -1,0 +1,11 @@
+{
+  "name": "claude-skills",
+  "description": "Parallel development workflow skills: research, deliberation, implementation, code review, and multi-workstream orchestration with worktree isolation",
+  "version": "1.0.0",
+  "author": {
+    "name": "Patrick Robinson"
+  },
+  "homepage": "https://github.com/patrob/claude-skills",
+  "repository": "https://github.com/patrob/claude-skills",
+  "license": "MIT"
+}

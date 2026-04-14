@@ -2,6 +2,46 @@
 
 A collection of Claude Code skills for parallel development workflows and code review.
 
+## Installation
+
+Install as a Claude Code plugin directly from GitHub:
+
+```bash
+claude plugin install patrob/claude-skills@github
+```
+
+Once installed, all skills are available with the `claude-skills:` prefix:
+
+```
+/claude-skills:workflow       # Pipeline orchestrator
+/claude-skills:orchestrate    # Multi-workstream parallel build
+/claude-skills:pw-research    # Deep parallel research
+/claude-skills:pw-review      # 5-lens code review
+```
+
+### Manual Installation
+
+If you prefer to install manually, copy the skills and commands into your Claude Code configuration:
+
+```bash
+# Clone the repo
+git clone https://github.com/patrob/claude-skills.git
+
+# Copy all skills
+cp -r claude-skills/skills/* ~/.claude/skills/
+
+# Copy the workflow command
+cp claude-skills/commands/workflow.md ~/.claude/commands/
+```
+
+### Local Development
+
+To test changes locally before committing:
+
+```bash
+claude --plugin-dir ./claude-skills
+```
+
 ## What's Included
 
 ### Development Pipeline Skills
@@ -31,22 +71,6 @@ Feature: pw-research → pw-deliberate → pw-implement → verify-fix-loop → 
 /orchestrate scales this to multiple parallel workstreams:
   Parse roadmap → decompose into workstreams → spawn worktree agents
   → each agent runs full /workflow pipeline → review → merge
-```
-
-## Installation
-
-Copy the skills and commands you want into your Claude Code configuration:
-
-```bash
-# Copy all skills
-cp -r skills/* ~/.claude/skills/
-
-# Copy the workflow command
-cp commands/workflow.md ~/.claude/commands/
-
-# Or symlink for easy updates
-ln -s $(pwd)/skills/* ~/.claude/skills/
-ln -s $(pwd)/commands/workflow.md ~/.claude/commands/workflow.md
 ```
 
 ## Customization
