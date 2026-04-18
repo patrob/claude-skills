@@ -1,0 +1,13 @@
+{
+  "scenario": "scope-spillover",
+  "description": "Undeclared out-of-scope file must be classified as creep",
+  "assertions": [
+    { "path": "workstreams.auth-service.status", "equals": "complete" },
+    { "path": "workstreams.auth-service.scope_deviations[*].file", "contains": "docs/unrelated.md" },
+    { "path": "workstreams.auth-service.scope_deviations[*].declared", "contains": false },
+    { "path": "workstreams.auth-service.scope_deviations[*].classification", "contains": "creep" },
+    { "path": "workstreams.auth-service.scope_deviations[*].action", "matches": "^(reverted|halted)$" },
+    { "path": "next_actions[*].type", "contains": "scope-review" },
+    { "path": "scope_deviations[*].file", "contains": "docs/unrelated.md" }
+  ]
+}

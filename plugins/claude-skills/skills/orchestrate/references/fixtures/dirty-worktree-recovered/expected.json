@@ -1,0 +1,22 @@
+{
+  "scenario": "dirty-worktree-recovered",
+  "description": "Dirty worktree must be recovered, quarantined, NOT merged",
+  "assertions": [
+    { "path": "status", "equals": "mixed" },
+    { "path": "workstreams.auth-service.status", "equals": "complete" },
+    { "path": "workstreams.auth-service.merge_safety.proceed_to_merge", "equals": true },
+    { "path": "workstreams.clip-editor.status", "equals": "quarantined" },
+    { "path": "workstreams.clip-editor.quarantined", "equals": true },
+    { "path": "workstreams.clip-editor.merge_skipped", "equals": true },
+    { "path": "workstreams.clip-editor.recovery_commit", "matches": "^[a-f0-9]{7,40}$" },
+    { "path": "workstreams.clip-editor.recovery_diff", "matches": "^\\.pipeline/.+/recovery/clip-editor\\.diff$" },
+    { "path": "workstreams.clip-editor.quarantine_reason", "contains": "uncommitted" },
+    { "path": "workstreams.clip-editor.merge_safety.proceed_to_merge", "equals": false },
+    { "path": "next_actions[*].type", "contains": "quarantine-review" },
+    { "path": "next_actions[*].workstream", "contains": "clip-editor" },
+    { "path": "merge_log[*].branch", "contains": "auth-service" },
+    { "path": "merge_log[*].branch", "not_equals": "clip-editor" },
+    { "path": "acceptance_criteria[id=AC1].status", "equals": "pass" },
+    { "path": "acceptance_criteria[id=AC2].status", "equals": "not-verified" }
+  ]
+}

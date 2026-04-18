@@ -1,0 +1,19 @@
+{
+  "scenario": "clean-parallel",
+  "description": "Three independent workstreams complete cleanly",
+  "assertions": [
+    { "path": "status", "equals": "green" },
+    { "path": "workstreams.auth-service.status", "equals": "complete" },
+    { "path": "workstreams.auth-service.verify_attempts_used", "equals": 1 },
+    { "path": "workstreams.auth-service.merge_safety.proceed_to_merge", "equals": true },
+    { "path": "workstreams.video-api.status", "equals": "complete" },
+    { "path": "workstreams.video-api.verify_attempts_used", "equals": 1 },
+    { "path": "workstreams.clip-editor.status", "equals": "complete" },
+    { "path": "workstreams.clip-editor.verify_attempts_used", "equals": 1 },
+    { "path": "quarantined", "equals": [] },
+    { "path": "scope_deviations", "equals": [] },
+    { "path": "verify_final.status", "equals": "green" },
+    { "path": "acceptance_criteria[*].status", "equals": "pass" },
+    { "path": "next_actions", "equals": [] }
+  ]
+}

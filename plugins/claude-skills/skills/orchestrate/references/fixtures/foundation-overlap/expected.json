@@ -1,0 +1,14 @@
+{
+  "scenario": "foundation-overlap",
+  "description": "Overlapping scope_globs in the same round must halt before stomping",
+  "assertions": [
+    { "path": "planning.detected_overlaps[*].workstreams", "contains": ["auth-service", "sessions-api"] },
+    { "path": "planning.detected_overlaps[*].files", "contains": "src/shared/**" },
+    { "path": "planning.recommended_foundation_extraction", "equals": true },
+    { "path": "workstreams.auth-service.status", "equals": "complete" },
+    { "path": "workstreams.sessions-api.merge_safety.scope_deviations[*].classification", "contains": "foundation-overlap" },
+    { "path": "workstreams.sessions-api.merge_safety.proceed_to_merge", "equals": false },
+    { "path": "next_actions[*].type", "contains": "foundation-overlap-resolve" },
+    { "path": "next_actions[*].workstream", "contains": "sessions-api" }
+  ]
+}
