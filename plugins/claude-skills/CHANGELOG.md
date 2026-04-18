@@ -4,11 +4,14 @@ All notable changes to the `claude-skills` plugin. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this plugin
 adheres to semantic versioning.
 
-## [1.3.0] — 2026-04-17
+## [1.2.0] — 2026-04-17
 
-Autonomous-workflow upgrade for `/orchestrate`. Outcome of a Tech Lead /
-Product Owner deliberation that reconciled the "stay autonomous" goal with
-the v1.2 "never silently merge garbage" safety rule.
+Autonomous-workflow upgrade for `/orchestrate`. Introduces the Merge-Back
+Safety Checklist together with the recovery-quarantine path, verify gate,
+`verify.final` hook, acceptance report, `--dry-run`, and progressive
+disclosure of phase detail. Outcome of a Tech Lead / Product Owner
+deliberation that reconciled the "stay autonomous" goal with the "never
+silently merge garbage" safety guarantee.
 
 ### Added — `/orchestrate`
 
@@ -72,15 +75,23 @@ the v1.2 "never silently merge garbage" safety rule.
   safety rules and the phase sequence. Reduces context load when only a
   single phase is executing.
 
-- **Retry semantics formalized**. v1.2 mentioned "3 attempts" loosely; v1.3
-  specifies three distinct retry axes and their termination conditions, with
-  state.json capturing the axis used per attempt.
+- **Retry semantics formalized**. Three distinct retry axes with explicit
+  termination conditions; state.json captures the axis used per attempt.
 
-- **Phase 3.5b behavior**. In v1.2 a dirty worktree was a hard stop. In v1.3
-  it is a recovery-quarantine. Both versions refuse to merge unreviewed
-  work; v1.3 keeps the overall run alive so other workstreams can continue.
+- **Merge-Back Safety Checklist (Phase 3.5)**: 3.5a (operate from main repo
+  root), 3.5b (dirty worktree → recovery + quarantine, not merged), 3.5c
+  (scope diff classified as declared-spillover / creep / foundation-overlap),
+  3.5d (record outcome in state.json). Includes cross-boundary contracts
+  for producer/consumer pairs, regression guard (catalog pre-existing
+  public interfaces before edits, verify after), and an integration-fix
+  review gate (fix commits during final integration must be reviewed before
+  re-verify).
 
-### Non-Goals (explicitly not shipping in v1.3)
+- Merge protocol prerequisites now require the Phase 3.5 checklist to pass.
+  Removed the old auto-commit fallback in `merge-protocol.md` Step 1b in
+  favor of the recovery-quarantine behavior.
+
+### Non-Goals (explicitly not shipping)
 
 - Playwright login smoke as a universal default — left configurable per the
   PO recommendation; many callers (plugins, CLIs, libraries) have no login.
@@ -88,33 +99,7 @@ the v1.2 "never silently merge garbage" safety rule.
   Scenario fixtures cover the same fear (regression of safety rules).
 - Auto-merge of recovered worktrees if their post-recovery verify passes —
   proposed by the Tech Lead, deferred to a future `--autonomous-aggressive`
-  flag. v1.3 default is conservative: human must review quarantined branches.
-
-## [1.2.0] — 2026-04-17
-
-### Added — `/orchestrate`
-
-- **Phase 3.5: Merge-Back Safety Checklist** enforced before every worktree
-  merge, with four sub-steps:
-  - 3.5a — Leave the worktree: compute `$MAIN_ROOT`, verify working
-    directory is the main repo root, never run merges from inside a
-    worktree being merged or deleted.
-  - 3.5b — Fail loudly on uncommitted work in the worktree (refuse to merge;
-    no auto-commit). *Note: revised to recovery-quarantine in v1.3.*
-  - 3.5c — Scope diff: compare changed files against the workstream's
-    declared scope and flag spillover / creep / foundation overlap.
-  - 3.5d — Record `merge_safety` block in state.json.
-- Cross-boundary contracts for producer/consumer workstream pairs.
-- Regression guard in the workstream agent prompt: catalog pre-existing
-  public interfaces before edits, verify they still work after.
-- Integration fix review gate: any fix commits made during the final
-  integration pass must be reviewed before re-verify.
-
-### Changed
-
-- Merge protocol prerequisites now require the Phase 3.5 checklist to pass.
-- Removed the old auto-commit fallback in `merge-protocol.md` Step 1b in
-  favor of the hard-stop / recovery behavior.
+  flag. Default is conservative: human must review quarantined branches.
 
 ## [1.1.0]
 
