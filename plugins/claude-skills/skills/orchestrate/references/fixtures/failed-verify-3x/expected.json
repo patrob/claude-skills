@@ -1,0 +1,21 @@
+{
+  "scenario": "failed-verify-3x",
+  "description": "All 3 verify retry axes exhausted — workstream FAILED, not merged",
+  "assertions": [
+    { "path": "workstreams.video-api.status", "equals": "failed" },
+    { "path": "workstreams.video-api.verify_attempts_used", "equals": 3 },
+    { "path": "workstreams.video-api.verify_attempts[0].axis", "equals": "feedback-loop" },
+    { "path": "workstreams.video-api.verify_attempts[0].result", "equals": "fail" },
+    { "path": "workstreams.video-api.verify_attempts[1].axis", "equals": "reduced-scope" },
+    { "path": "workstreams.video-api.verify_attempts[1].result", "equals": "fail" },
+    { "path": "workstreams.video-api.verify_attempts[2].axis", "equals": "fresh-agent" },
+    { "path": "workstreams.video-api.verify_attempts[2].result", "equals": "fail" },
+    { "path": "workstreams.video-api.verify_failures", "not_equals": null },
+    { "path": "workstreams.video-api.merge_safety.proceed_to_merge", "equals": false },
+    { "path": "merge_log[*].branch", "not_equals": "video-api" },
+    { "path": "next_actions[*].type", "contains": "failed-workstream-review" },
+    { "path": "acceptance_criteria[id=AC1].status", "equals": "not-verified" },
+    { "path": "acceptance_criteria[id=AC2].status", "equals": "not-verified" },
+    { "path": "status", "matches": "^(red|mixed)$" }
+  ]
+}

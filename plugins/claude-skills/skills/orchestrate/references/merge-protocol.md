@@ -6,8 +6,16 @@ How to merge worktree branches into the feature branch safely.
 
 Before merging any worktree branch:
 1. The branch has been reviewed (Phase 3 complete)
-2. The feature branch is checked out and clean (`git status` shows no changes)
-3. All earlier-round branches have already been merged (dependency order)
+2. The Merge-Back Safety Checklist (Phase 3.5) has passed — specifically:
+   you are in the main repo root, the worktree is clean, and the scope diff
+   has been resolved
+3. The feature branch is checked out and clean (`git status` shows no changes)
+4. All earlier-round branches have already been merged (dependency order)
+
+All commands below run from `$MAIN_ROOT` (the main repo working tree), NOT
+from inside the worktree being merged. Operating from the worktree being
+merged or deleted will leave the repo in an inconsistent state if the
+worktree directory is removed underneath you.
 
 ## Merge Order
 
@@ -29,28 +37,11 @@ git status  # must be clean
 
 ### Step 1b: Verify Worktree Branch Is Committed
 
-Before merging, confirm the worktree branch has no uncommitted work:
-```bash
-git stash
-git checkout {worktree-branch}
-DIRTY=$(git status --porcelain)
-git checkout $FEATURE_BRANCH
-git stash pop 2>/dev/null
-```
-
-If `$DIRTY` is non-empty, launch a small agent to commit the remaining work:
-```
-Agent({
-  description: "Commit uncommitted work on {worktree-branch}",
-  prompt: "Branch {worktree-branch} has uncommitted changes.
-  Run: git add -A && git commit -m '{workstream}: uncommitted implementation work'
-  Then run: git status to confirm clean state.
-  Report the list of files that were committed."
-})
-```
-
-This is a safety net. The workstream agent's Commit Gate (Phase 3.5) should
-have caught this — if we reach this point, log a warning in the orchestration report.
+This check is now part of the Merge-Back Safety Checklist (Phase 3.5b). If
+you reach Step 2 of the merge protocol, 3.5b has already confirmed the
+worktree is clean. Do not re-check here and do not auto-commit on the
+agent's behalf — a dirty worktree at merge time is a hard stop, not a
+recoverable state.
 
 ### Step 2: Merge with No-FF
 
