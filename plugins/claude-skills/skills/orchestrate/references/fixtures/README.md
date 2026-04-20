@@ -2,7 +2,8 @@
 
 These fixtures exercise the reconciliation logic of `/orchestrate` — the
 rules that decide quarantine vs merge, retry outcomes, and scope-diff
-classifications. They are used by `references/self-test.md`.
+classifications. Each fixture pairs an `input.md` with an `expected.json`
+that asserts the outcome the skill's rules should produce.
 
 ## Not Unit Tests
 
@@ -14,9 +15,12 @@ the outcome matches.
 
 ## Running
 
-See `../self-test.md`. A reviewer or pre-release meta-agent runs all
-fixtures and reports any mismatch between predicted and expected behavior.
-Failure = the skill's rules diverged from this documented contract.
+A reviewer or pre-release meta-agent walks the orchestration rules against
+each fixture and asserts the outcome matches `expected.json`. Failure = the
+skill's rules diverged from this documented contract.
+
+To run a fixture manually: `/orchestrate --dry-run fixtures/{name}/input.md`
+and compare the resulting plan against `expected.json`.
 
 ## Fixture Inventory
 
@@ -45,7 +49,7 @@ is a condition the self-test meta-agent checks against the run outcome:
 ```
 
 Path syntax: dot-notation into the acceptance-report.json shape (see
-`../phase-5-report.md`). `[*]` = match any array element. Supported operators:
+`../phase-report.md`). `[*]` = match any array element. Supported operators:
 `equals`, `contains`, `not_equals`, `greater_than`, `matches` (regex).
 
 ## Adding a Fixture

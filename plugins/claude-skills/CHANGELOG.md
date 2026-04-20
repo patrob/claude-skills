@@ -4,6 +4,80 @@ All notable changes to the `claude-skills` plugin. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this plugin
 adheres to semantic versioning.
 
+## [1.4.0] — 2026-04-20
+
+Thin-delegator refactor of `/orchestrate`. The orchestrator is now a pure
+coordinator — every code change, test run, and commit is delegated to a
+spawned subagent or a sub-skill. Verbosity reduced via progressive
+disclosure into four standalone, independently-invocable skills. Switches
+implementation to strict one-test-at-a-time TDD per success criterion and
+adds a bounded product-owner acceptance gate with showstopper / fast-follow
+triage.
+
+### Added — standalone skills (composable by `/orchestrate`, usable alone)
+
+- **`extract-criteria`** — delegate spec decomposition to one subagent that
+  returns `{workstreams, ac_map, per_workstream_criteria}` as JSON. Every
+  success criterion carries a runnable `check`. Replaces
+  `phase-1-decompose.md`. Invocable directly against any spec/PRD.
+- **`tdd-cycle`** — TDD one criterion via test-writer → implementer →
+  verifier → fix-loop, each a separate subagent. The implementer receives
+  the failing test's content, path, and expected-error as structured
+  context (no handoff guesswork). Wraps `verify-fix-loop`. Hard cap 3
+  fix-loop iterations per criterion with distinct retry axes.
+- **`parallel-workstreams`** — create worktrees, assemble worktree-agent
+  prompts, launch all agents in a single message for true concurrency.
+  Each worktree agent loops `Skill(tdd-cycle)` over its criteria.
+  Absorbs `phase-2-spawn.md`. Supports Round 0 foundation on the feature
+  branch, then parallel rounds.
+- **`po-acceptance`** — bounded PO-persona subagent (read-only + configured
+  smoke only; no Playwright install mid-run). Emits
+  `{verdict, showstoppers, fast_follows, updated_criteria}`. Showstoppers
+  carry a proposed new criterion the caller merges into the next TDD
+  round. Triage routing is 10 lines inline in `orchestrate/SKILL.md`.
+
+### Changed — `/orchestrate`
+
+- **Delegation Contract** at the top of `SKILL.md`: the main agent MUST
+  NOT `Edit`/`Write`/`NotebookEdit` source, run build/test/lint/install/
+  commit bash, or merge directly. Every mutation is a spawned subagent.
+- **Showstopper loop cap: 2 rounds.** After two rounds of PO rejection,
+  the run halts with `SHOWSTOPPER_UNRESOLVED`; the same failure class
+  appearing twice means the criteria themselves need human rewriting.
+- **`state.json` schema_version: 2.** Adds `showstopper_rounds_used`.
+  Resume on a pre-v2 state emits "schema v1 detected — re-run required"
+  and stops; no silent migration.
+- **Progressive disclosure deeper.** `SKILL.md` trimmed to 149 lines
+  (down from 202 with new content added). Reference files consolidated:
+  `phase-3.5-merge-safety.md` + `merge-protocol.md` +
+  `phase-4-verify-final.md` → single `phase-merge-safety.md`;
+  `phase-5-report.md` renamed `phase-report.md`; `retry-semantics.md` and
+  `dry-run.md` condensed.
+- **Worktree coordination preserved intact.** Dirty-worktree quarantine,
+  scope-diff classification, foundation-overlap detection, conflict-
+  resolution agent, and `verify.final` hook all continue to work — now
+  invoked from the merge-coordinator subagent rather than by the main
+  orchestrator.
+
+### Removed
+
+- `skills/orchestrate/references/phase-1-decompose.md` → `extract-criteria`
+- `skills/orchestrate/references/phase-2-spawn.md` → `parallel-workstreams`
+- `skills/orchestrate/references/phase-3-review.md` (pw-review covers it)
+- `skills/orchestrate/references/review-loop.md` (pw-review covers it)
+- `skills/orchestrate/references/merge-protocol.md` → `phase-merge-safety.md`
+- `skills/orchestrate/references/phase-4-verify-final.md` → `phase-merge-safety.md`
+- `skills/orchestrate/references/phase-3.5-merge-safety.md` → `phase-merge-safety.md`
+- `skills/orchestrate/references/phase-5-report.md` → `phase-report.md`
+- `skills/orchestrate/references/self-test.md` (reduced to a pointer in fixtures/README.md)
+
+### Migration
+
+User-facing invocation is unchanged (`/orchestrate {input}`, `fast`,
+`thorough`, `auto`, `--dry-run`, `resume`). Pre-v2 `state.json` files are
+not auto-migrated. To resume an in-flight 1.3.x run: re-run from the spec,
+or keep 1.3.x installed until the run completes.
+
 ## [1.3.0] — 2026-04-17
 
 Autonomous-workflow upgrade for `/orchestrate`. Introduces the Merge-Back
