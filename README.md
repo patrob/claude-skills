@@ -7,11 +7,11 @@ A collection of Claude Code skills for parallel development workflows and code r
 From inside Claude Code, add the marketplace and install the plugin:
 
 ```
-/plugin marketplace add patrob/claude-skills
-/plugin install claude-skills@claude-skills
+/plugin marketplace add patrob/skills
+/plugin install claude-skills@skills
 ```
 
-The identifier `claude-skills@claude-skills` is `<plugin-name>@<marketplace-name>` — both happen to be `claude-skills` in this repo.
+The identifier `claude-skills@skills` is `<plugin-name>@<marketplace-name>`.
 
 Once installed, all skills are available with the `claude-skills:` prefix:
 
