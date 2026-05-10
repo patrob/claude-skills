@@ -31,6 +31,7 @@ and compare the resulting plan against `expected.json`.
 | `scope-spillover/` | Workstream touches a file outside its scope_globs without declaring it — must be classified as creep, reverted or halted |
 | `failed-verify-3x/` | Verify gate fails all 3 retry axes — workstream must be marked FAILED, not merged, verify_failures captured |
 | `foundation-overlap/` | Two same-round workstreams' scope_globs intersect — must halt at 3.5c and surface to user |
+| `rubric-graded-satisfied/` | Mix of binary criteria and rubric-bearing criteria; Stage 5 grader returns `satisfied` on first pass for both an SC and a rubric-only AC |
 
 ## What Each Fixture Asserts
 
