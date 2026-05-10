@@ -14,9 +14,12 @@ description: |
 
 # TDD Cycle — One Criterion
 
-Drive a single success criterion to green using four specialized subagents,
-in strict order. The caller is a pure coordinator — it launches agents and
-reads their reports. It does not edit code, run tests, or commit.
+Drive a single success criterion to green using four-to-five specialized
+subagents, in strict order. The caller is a pure coordinator — it launches
+agents and reads their reports. It does not edit code, run tests, or commit.
+
+Stage 5 (Outcome Grader) runs only when the criterion carries a `rubric`.
+Pure-binary criteria with only a `check` skip Stage 5 and stop at Stage 3.
 
 ## Input
 
@@ -25,13 +28,17 @@ reads their reports. It does not edit code, run tests, or commit.
   "criterion": {
     "id": "SC3",
     "text": "Login endpoint returns 401 on expired tokens",
-    "check": "npx vitest run auth/login.test.ts -t 'expired token'"
+    "check": "npx vitest run auth/login.test.ts -t 'expired token'",
+    "rubric": "## Status code\n- Returns 401 on expired token\n- Returns 401 on missing exp claim\n## Response body\n- error field is non-empty\n- Does NOT leak the decoded token"
   },
   "workstream": "auth-service",
   "scope_globs": ["src/auth/**", "tests/auth/**"],
   "context": "optional prior-criterion summary or shared types"
 }
 ```
+
+`criterion.check` and `criterion.rubric` are each optional individually but
+at least one must be present (enforced by `extract-criteria`'s quality bar).
 
 ## Pipeline
 
@@ -168,7 +175,11 @@ VERIFIER_REPORT
 })
 ```
 
-If `overall: GREEN`, the cycle is DONE — record success and return.
+If `overall: RED`, advance to Stage 4.
+
+If `overall: GREEN`:
+- If `criterion.rubric` is present → advance to Stage 5.
+- Otherwise → cycle is DONE; record success and return.
 
 ### Stage 4 — Fix Loop
 
@@ -187,6 +198,73 @@ Retry axis discipline (applies to these 3 iterations — see
   2. Reduced scope (revert unrelated changes, fix minimal slice)
   3. Fresh agent (new subagent with "choose a different approach")
 
+### Stage 5 — Outcome Grader
+
+Only runs when `criterion.rubric` is present and Stage 3 returned GREEN.
+Spawns the bias-isolated `criterion-grader` agent against the rubric.
+Full design notes and worked examples in
+[references/outcome-grader.md](references/outcome-grader.md).
+
+```
+Agent({
+  description: "Grade {criterion.id} against rubric",
+  subagent_type: "criterion-grader",
+  prompt: "Grade this criterion against its rubric.
+
+criterion:
+  id: {criterion.id}
+  text: {criterion.text}
+  rubric: |
+    {criterion.rubric}
+
+artifact:
+  test_file: {stage1.test_file}
+  test_commit: {stage1.commit_sha}
+  impl_commit: {stage2.commit_sha}
+  scope_globs: {scope_globs}
+  workstream: {workstream}
+
+You have read-only access. Do not run tests or modify anything. Read the
+test file, the diff between test_commit^ and impl_commit, and any in-scope
+production source. Return the JSON verdict described in your agent
+definition.
+"
+})
+```
+
+The grader returns a `GRADER_REPORT`:
+
+```
+GRADER_REPORT
+  criterion_id: {id}
+  result: satisfied | needs_revision | failed
+  per_aspect: [{ aspect, status, bullets: [{ bullet, status, evidence, gap }] }]
+  explanation: {one paragraph}
+  files_inspected: [paths]
+```
+
+Route on `result`:
+
+| Result | Next |
+| --- | --- |
+| `satisfied` | Cycle is DONE; record success including grader payload, return. |
+| `needs_revision` | Route into Stage 4 (Fix Loop) with grader feedback as the failure context. The fix-loop agent receives the per-aspect `gap` strings as the work to do, NOT a failing test. |
+| `failed` | Halt the cycle. The rubric and criterion text contradict each other; a human must reconcile. Record `status: "failed_grader_contradiction"` and surface the explanation in the CYCLE_REPORT. |
+
+Hard cap: **3 grader iterations per criterion**, separate budget from the
+fix-loop's 3 iterations. The combined cap is 6 revisions in the worst case
+(3 fix-loop reds + 3 grader needs_revision). After 3 grader rejections:
+- Record `status: "failed_grader"` on the criterion with all per-aspect
+  gaps from the final iteration.
+- Return failure to the caller. Same human-consent rule as the fix-loop.
+
+Retry axis discipline for grader-driven revisions:
+  1. Address every `gap` from the most recent grader report; same agents.
+  2. Reduce scope: address only the highest-severity gap (per-aspect with
+     most failed bullets) and re-grade.
+  3. Fresh implementer: new subagent with the gaps + a "the prior approach
+     missed these aspects entirely" framing.
+
 ## Output
 
 The caller receives a `CYCLE_REPORT`:
@@ -194,15 +272,24 @@ The caller receives a `CYCLE_REPORT`:
 ```
 CYCLE_REPORT
   criterion_id: {id}
-  status: DONE | FAILED
+  status: DONE | FAILED | FAILED_GRADER | FAILED_GRADER_CONTRADICTION
   test_file: {path}
   test_name: {name}
   test_commit: {sha}
   impl_commit: {sha}
   verify: { typecheck, tests, lint }  # from stage 3
   fix_loop_iterations: 0-3
+  grader_iterations: 0-3        # 0 if criterion had no rubric
+  per_aspect_results: [...]     # final grader report's per_aspect; null if no rubric
   scope_deviations: [...]
 ```
+
+`status` values:
+- `DONE` — Stage 3 GREEN, and either no rubric or grader returned `satisfied`.
+- `FAILED` — fix-loop exhausted 3 retries without reaching GREEN.
+- `FAILED_GRADER` — grader returned `needs_revision` 3 times.
+- `FAILED_GRADER_CONTRADICTION` — grader returned `failed` (rubric vs.
+  criterion text mismatch). Single-shot terminal status.
 
 ## Delegation contract (enforced)
 
