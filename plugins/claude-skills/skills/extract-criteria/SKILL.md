@@ -59,12 +59,27 @@ document describing every workstream, its scope, and its criteria.
    - scope_globs: file globs the workstream is allowed to touch
      (e.g. ["src/auth/**", "tests/auth/**", "migrations/*auth*"])
    - dependencies: names of workstreams that must merge first
-   - success_criteria: 3-8 verifiable statements about what the code must do
-     (each statement must be testable with a single check command)
+   - success_criteria: 3-8 verifiable statements about what the code must do.
+     Each statement must carry a `check` command, a `rubric`, or BOTH:
+       - `check` — a single shell command that exits 0 iff the criterion
+         holds. Required for any criterion whose verification is naturally
+         binary (status code, return value, file exists, lint clean).
+       - `rubric` — a markdown document with `## Aspect` sections and
+         per-aspect bullets. Required for any criterion whose verification
+         is qualitative or has multiple sub-aspects (response shape +
+         logging behavior + error message quality, "report renders
+         correctly," "error message is helpful"). The rubric is graded by a
+         bias-isolated `criterion-grader` subagent at Stage 5 of
+         `tdd-cycle`.
+       - BOTH is allowed and recommended for criteria that have a clear
+         binary check but where the test could pass for the wrong reason —
+         the rubric becomes a sanity check that the test actually exercises
+         the criterion.
    - acceptance_criteria: 2-5 user-facing / behavioral statements the PO will
      walk through end-to-end. Must NOT contradict success_criteria but may
      be broader (end-to-end journeys, UX checks). If the spec has explicit
      ACs, use them verbatim; otherwise derive from the feature description.
+     Acceptance criteria may also carry a `rubric` (no `check` required).
 4. Identify Consumer/Producer pairs. For each pair, define a contract:
    producer workstream name, consumer workstream name, data shape.
 5. Build an ac_map: every AC id from the original spec → owning workstream.
@@ -92,10 +107,21 @@ Return EXACTLY this JSON (no prose, no markdown fences):
           "scope_globs": ["src/types/**"],
           "dependencies": [],
           "success_criteria": [
-            { "id": "SC1", "text": "...", "check": "npm run typecheck" }
+            { "id": "SC1", "text": "...", "check": "npm run typecheck" },
+            {
+              "id": "SC2",
+              "text": "Login rejection response is well-formed and safe",
+              "check": "npx vitest run auth/login.test.ts",
+              "rubric": "## Status code\n- Returns HTTP 401 on expired token\n## Response body\n- `error` is a non-empty string\n- Does NOT leak the decoded token payload\n## Logging\n- Logs at info with the `sub` claim only"
+            }
           ],
           "acceptance_criteria": [
-            { "id": "AC1", "text": "..." }
+            { "id": "AC1", "text": "..." },
+            {
+              "id": "AC2",
+              "text": "Failed-login error message is helpful and non-leaky",
+              "rubric": "## Tone\n- Plain English, no stack trace\n## Information disclosure\n- Does not name which field was wrong (username vs password)\n- Does not reveal whether the account exists"
+            }
           ]
         }
       ]
@@ -138,9 +164,37 @@ schedule so the user can review before any agents are launched.
 
 ## Quality bar
 
-- Every success criterion has a runnable `check` command.
-- Every acceptance criterion maps to ≥1 success criterion (check via
-  `ac_map`).
+- Every success criterion has at least one of: a runnable `check` command,
+  a `rubric` (markdown with `## Aspect` sections), or both. A criterion with
+  neither is rejected — the verifier and the grader would have nothing to
+  evaluate.
+- Every acceptance criterion is either covered by ≥1 success criterion (via
+  `ac_map`) OR carries its own `rubric` so the PO grader can score it
+  directly.
+- Rubrics are written as markdown with `## Aspect` sections and `-` bullets
+  per gradeable item. Each bullet is a single, testable assertion. Avoid
+  vague bullets like "the response is good" — the grader scores per bullet,
+  so vague bullets produce noisy verdicts.
 - Scope globs are specific (`src/auth/**`, not `**`).
 - No two workstreams in the same round have intersecting scope globs
   (foundation overlap must be extracted as its own Round 0 workstream).
+
+## When to add a rubric (decomposer guidance)
+
+Add a rubric when the criterion involves any of:
+
+- **Multiple sub-aspects** — "returns 401 AND logs the rejection AND does
+  not leak the token." A `check` collapses these into one pass/fail; a
+  rubric scores each independently and tells you exactly which one failed.
+- **Qualitative judgment** — "error message is helpful," "report layout is
+  scannable," "API shape is intuitive." No CLI exits 0 for these.
+- **Information-disclosure / safety properties** — "does NOT log the full
+  token," "does NOT reveal which field was wrong." These are absence
+  properties that tests rarely cover but that a grader reading the diff
+  catches naturally.
+- **Cross-cutting concerns** — "all endpoints emit a request_id header."
+  The rubric forces the grader to enumerate, not just sample.
+
+Skip the rubric (use `check` only) when the criterion is a single binary
+behavior with a clean test (a function returns the right value, a migration
+adds the right column, a feature flag toggles correctly).
