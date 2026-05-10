@@ -42,7 +42,7 @@ description · auto-detect most recent `.pipeline/*/plan.md`.
 /orchestrate thorough {input}  # standard + pw-review on final diff
 /orchestrate auto {input}      # skip confirmation prompts
 /orchestrate --dry-run {input} # render plan, stop
-/orchestrate resume            # continue from last state.json (schema v2)
+/orchestrate resume            # continue from last state.json (schema v3)
 ```
 
 ## Setup
@@ -54,9 +54,14 @@ FEATURE_BRANCH="orchestrate/$RUN_NAME"
 git checkout -b "$FEATURE_BRANCH"
 ```
 
-Initialize `state.json` with `schema_version: 2`, `run_name`,
+Initialize `state.json` with `schema_version: 3`, `run_name`,
 `feature_branch`, `base_branch`, `status: "running"`, `current_round: 0`,
 `rounds: []`, `ac_map: {}`, `showstopper_rounds_used: 0`.
+
+Each criterion result inside `rounds[].workstreams[].criteria[]` carries
+`grader_iterations` (int 0-3) and `per_aspect_results` (array, null when
+the criterion had no rubric). These come from the `tdd-cycle`
+`CYCLE_REPORT` and let `/orchestrate resume` reconstruct grader history.
 
 ## Phase Flow
 
@@ -121,8 +126,10 @@ verify:
 ## State & Resume
 
 `state.json` is the source of truth. Update after decompose, each round,
-each merge, each PO verdict, any failure. `schema_version: 2`; resume on
-pre-v2 emits "schema v1 detected — re-run required" and stops.
+each merge, each PO verdict, any failure. `schema_version: 3`; resume on
+pre-v3 emits "schema v2 detected — re-run required" and stops. No silent
+migration — `grader_iterations` and `per_aspect_results` have no sane
+default for runs that predate Stage 5.
 
 `/orchestrate resume` skips completed rounds, re-spawns
 failed/quarantined workstreams on opt-in, re-runs PO, regenerates report.
