@@ -1,0 +1,34 @@
+{
+  "scenario": "rubric-graded-satisfied",
+  "description": "Mixed binary + rubric criteria; Stage 5 grader satisfies on first pass for both SC2 and rubric-only AC1",
+  "assertions": [
+    { "path": "schema_version", "equals": 3 },
+    { "path": "status", "equals": "green" },
+
+    { "path": "workstreams.auth-service.status", "equals": "complete" },
+    { "path": "workstreams.auth-service.criteria.SC1.status", "equals": "DONE" },
+    { "path": "workstreams.auth-service.criteria.SC1.grader_iterations", "equals": 0 },
+    { "path": "workstreams.auth-service.criteria.SC1.per_aspect_results", "equals": null },
+
+    { "path": "workstreams.auth-service.criteria.SC2.status", "equals": "DONE" },
+    { "path": "workstreams.auth-service.criteria.SC2.grader_iterations", "equals": 1 },
+    { "path": "workstreams.auth-service.criteria.SC2.fix_loop_iterations", "equals": 0 },
+    { "path": "workstreams.auth-service.criteria.SC2.per_aspect_results[*].status", "equals": "satisfied" },
+    { "path": "workstreams.auth-service.criteria.SC2.per_aspect_results[*].aspect", "contains": "Status code" },
+    { "path": "workstreams.auth-service.criteria.SC2.per_aspect_results[*].aspect", "contains": "Response body" },
+    { "path": "workstreams.auth-service.criteria.SC2.per_aspect_results[*].aspect", "contains": "Logging" },
+
+    { "path": "acceptance_criteria[*].id", "contains": "AC1" },
+    { "path": "acceptance_criteria[*].source", "contains": "criterion-grader" },
+    { "path": "acceptance_criteria[*].grader_iterations", "contains": 1 },
+    { "path": "acceptance_criteria[*].per_aspect_results[*].aspect", "contains": "Tone" },
+    { "path": "acceptance_criteria[*].per_aspect_results[*].aspect", "contains": "Information disclosure" },
+    { "path": "acceptance_criteria[*].per_aspect_results[*].status", "equals": "satisfied" },
+
+    { "path": "verify_final.status", "equals": "green" },
+    { "path": "po_verdict", "equals": "APPROVED" },
+    { "path": "quarantined", "equals": [] },
+    { "path": "scope_deviations", "equals": [] },
+    { "path": "next_actions", "equals": [] }
+  ]
+}

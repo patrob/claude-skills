@@ -113,7 +113,7 @@ consumers:
 ```json
 {
   "run_name": "...",
-  "schema_version": 2,
+  "schema_version": 3,
   "status": "green|red|mixed|showstopper_unresolved",
   "po_verdict": "APPROVED|FAST_FOLLOWS_ONLY|SHOWSTOPPER_UNRESOLVED",
   "showstopper_rounds_used": 0,
@@ -122,7 +122,15 @@ consumers:
   "acceptance_criteria": [
     { "id": "AC1", "text": "...", "status": "pass|fail|manual",
       "source": "verify.final.commands.test",
-      "evidence": { "command": "...", "exit": 0, "duration_ms": 1342, "stdout_tail": "..." } }
+      "evidence": { "command": "...", "exit": 0, "duration_ms": 1342, "stdout_tail": "..." } },
+    { "id": "AC2", "text": "...", "status": "pass|fail|manual|graded_satisfied|graded_needs_revision",
+      "source": "criterion-grader",
+      "grader_iterations": 1,
+      "per_aspect_results": [
+        { "aspect": "Status code",
+          "status": "satisfied|needs_revision",
+          "bullets": [ { "bullet": "...", "status": "satisfied", "evidence": "..." } ] }
+      ] }
   ],
   "workstreams": [ ... ],
   "verify_final": { ... paste of verify-final.json ... },

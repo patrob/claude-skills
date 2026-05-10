@@ -4,6 +4,63 @@ All notable changes to the `claude-skills` plugin. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this plugin
 adheres to semantic versioning.
 
+## [1.5.0] — 2026-05-09
+
+Bias-isolated outcome grading inside `/orchestrate`. Models the Managed
+Agents "Outcomes" pattern: criteria can carry a markdown `rubric` in
+addition to (or instead of) a runnable `check`, and a fresh-context
+`criterion-grader` subagent scores the artifact per-aspect after the
+verifier passes. Catches the "test passes but doesn't actually exercise the
+criterion" failure mode and unlocks qualitative criteria (UX, error
+message quality, information-disclosure properties) that can't be expressed
+as a CLI exit code.
+
+### Added
+
+- **`criterion-grader` agent** (`agents/criterion-grader.md`) — restricted
+  to Read/Glob/Grep and read-only git Bash. Cannot edit, run tests, or
+  read implementer reports. Bias isolation by construction. Returns a
+  per-aspect verdict JSON with `gap` strings concrete enough for the
+  fix-loop to act on without re-interpretation.
+- **`tdd-cycle` Stage 5 — Outcome Grader** — runs after Stage 3 (Verifier)
+  GREEN when the criterion has a `rubric`. Routes `needs_revision` into
+  Stage 4 (Fix Loop) with grader gaps as the work to do. Cap: 3 grader
+  iterations per criterion, separate budget from the fix-loop's 3.
+  Worst-case combined revisions: 6.
+- **`extract-criteria` rubric support** — criteria gain an optional
+  `rubric` field (markdown with `## Aspect` sections). Quality bar updates
+  to "every criterion has check OR rubric (or both)." Decomposer guidance
+  added for when to draft a rubric (multi-aspect, qualitative,
+  information-disclosure, cross-cutting).
+- **`tdd-cycle/references/outcome-grader.md`** — full design notes,
+  rubric format, two worked examples (binary criterion + rubric;
+  rubric-only criterion), iteration semantics, bias-isolation rules.
+- **Fixture: `rubric-graded-satisfied/`** — exercises Stage 5 happy path
+  for both an SC and a rubric-only AC. Locks in the new state shape.
+
+### Changed
+
+- **CYCLE_REPORT** gains `grader_iterations`, `per_aspect_results`, and
+  three new terminal statuses: `FAILED_GRADER` (3 grader rejections),
+  `FAILED_GRADER_CONTRADICTION` (rubric vs. criterion text mismatch).
+- **`acceptance-report.json`** entries for graded ACs carry
+  `source: "criterion-grader"`, `grader_iterations`, and
+  `per_aspect_results` alongside the existing verify.final-driven shape.
+
+### Breaking
+
+- **`state.json` schema_version: 2 → 3.** Resume on a pre-v3 state emits
+  "schema v2 detected — re-run required" and stops. No silent migration —
+  `grader_iterations` and `per_aspect_results` have no sane default for
+  runs that predate Stage 5. Matches the v1 → v2 break pattern.
+
+### Backward compat
+
+Criteria with only a `check` and no `rubric` skip Stage 5 entirely and
+behave exactly as in 1.4.x. Existing fixtures (`clean-parallel`,
+`dirty-worktree-recovered`, `scope-spillover`, `failed-verify-3x`,
+`foundation-overlap`) stay green without modification.
+
 ## [1.4.0] — 2026-04-20
 
 Thin-delegator refactor of `/orchestrate`. The orchestrator is now a pure
